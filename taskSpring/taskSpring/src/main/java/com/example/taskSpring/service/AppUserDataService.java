@@ -28,16 +28,45 @@ public class AppUserDataService {
 
 
 
+    public double setPay(double hourlyPay, Calendar workingDays, int regularHours, int overtimeHours)
+    {
+        List<OffDays> offDaysList = offDaysRepository.findAll();
+        double totalPay = 0;
+        for (OffDays offDays : offDaysList) {
+            if (workingDays.get(Calendar.DAY_OF_WEEK) > 6) {
+
+                totalPay += hourlyPay * overtimeHours * 1.5 +
+                        hourlyPay * regularHours * 1.25;
+            } else if (offDays.getDate().equals(workingDays)) {
+                totalPay += hourlyPay * overtimeHours * 2 + hourlyPay *
+                        regularHours * 1.5;
+            } else if (workingDays.get(Calendar.DAY_OF_WEEK) > 6) {
+
+                totalPay += hourlyPay * overtimeHours * 1.5 + hourlyPay *
+                        regularHours * 1.25;
+            } else if (workingDays.get(Calendar.DAY_OF_WEEK) > 6 && offDays.getDate().equals(workingDays)) {
+
+                totalPay += hourlyPay * overtimeHours * 2 + hourlyPay *
+                        regularHours * 1.5;
+            } else {
+                totalPay += hourlyPay * overtimeHours * 1.25 +
+                        hourlyPay * regularHours;
+            }
+
+        }
+
+        return totalPay;
+    }
+
+
     public HashMap<Long,AppUserData> getUserData()
     {
 
         HashMap<Long,AppUserData> appUserDataMap = new HashMap<>();
         List<WorkingDays> workingDaysList = workingDaysRepository.findAll();
-        List<OffDays> offDaysList = offDaysRepository.findAll();
 
-        for(WorkingDays workingDays : workingDaysList )
-        {
-            for(OffDays offDays : offDaysList)
+
+            for(WorkingDays workingDays : workingDaysList )
             {
                 AppUserData appUserData = new AppUserData();
                 appUserData.setUserId( workingDays.getUser().getUserId() );
@@ -45,49 +74,26 @@ public class AppUserDataService {
                 appUserData.setLastName( workingDays.getUser().getSurname() );
                 appUserData.setTotalHours( workingDays.getHours());
                 appUserData.setRegularHours(8);
-                appUserDataMap.put( appUserData.getUserId(),appUserData );
                 appUserData.setOvertimeHours( appUserData.getTotalHours() - appUserData.getRegularHours() );
+                appUserData.setTotalPay(setPay(workingDays.getUser().getHourlyPayment(),workingDays.getDate(),appUserData.getRegularHours(),
+                        appUserData.getOvertimeHours()));
 
-                if(offDays.getDate().equals( workingDays.getDate() ))
-                {
-                    appUserData.setTotalPay( workingDays.getUser().getHourlyPayment() *( appUserData.getOvertimeHours() * 2 +
-                            appUserData.getRegularHours() * 1.5));
-                } else if (workingDays.getDate().get( Calendar.DAY_OF_WEEK ) > 6) {
-
-                    appUserData.setTotalPay( workingDays.getUser().getHourlyPayment() * appUserData.getOvertimeHours() * 1.5 +
-                            appUserData.getRegularHours() * 1.25);
-                }
-
-                 else if (workingDays.getDate().get( Calendar.DAY_OF_WEEK ) > 6 && offDays.getDate().equals( workingDays.getDate() )) {
-
-                        appUserData.setTotalPay( workingDays.getUser().getHourlyPayment() * (appUserData.getOvertimeHours() * 2 +
-                                appUserData.getRegularHours() * 1.5));
-                 }
-                 else
-                {
-                    appUserData.setTotalPay( workingDays.getUser().getHourlyPayment() * ( appUserData.getOvertimeHours() +
-                            appUserData.getRegularHours() ));
-                }
-
-
-
-                if(appUserDataMap.containsKey( appUserData.getUserId() ))
+                if(appUserDataMap.containsKey( appUserData.getUserId() ) )
                 {
                     AppUserData userData = appUserDataMap.get( appUserData.getUserId() );
                     userData.setTotalHours( appUserDataMap.get( appUserData.getUserId() ).getTotalHours() + appUserData.getTotalHours());
-                    userData.setRegularHours( appUserData.getRegularHours() +8);
-                    userData.setOvertimeHours( userData.getOvertimeHours() + appUserData.getOvertimeHours() );
-                    userData.setTotalPay( userData.getTotalPay() + appUserData.getTotalPay() );
+                    userData.setRegularHours( appUserDataMap.get( appUserData.getUserId()).getRegularHours() + 8);
+                    userData.setOvertimeHours(  appUserDataMap.get( appUserData.getUserId()).getOvertimeHours() + appUserData.getOvertimeHours() );
+                    userData.setTotalPay( appUserDataMap.get( appUserData.getUserId()).getTotalPay() + appUserData.getTotalPay() );
 
                 }
 
-            }
-
-
+                else {
+                    appUserDataMap.put( appUserData.getUserId(),appUserData );
+                }
 
 
         }
-
         return appUserDataMap;
     }
 
